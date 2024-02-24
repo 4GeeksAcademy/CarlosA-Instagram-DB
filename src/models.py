@@ -1,29 +1,61 @@
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Table
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import create_engine
 from eralchemy2 import render_er
 
+
 Base = declarative_base()
 
-class Person(Base):
-    __tablename__ = 'person'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
+# Tabla de asociación para la relación de muchos a muchos entre usuarios y seguidores
+followers_association = Table('followers', Base.metadata,
+    Column('follower_id', Integer, ForeignKey('users.id')),
+    Column('followed_id', Integer, ForeignKey('users.id'))
+)
 
-class Address(Base):
-    __tablename__ = 'address'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
+class Users(Base):
+    __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
-    street_name = Column(String(250))
-    street_number = Column(String(250))
-    post_code = Column(String(250), nullable=False)
-    person_id = Column(Integer, ForeignKey('person.id'))
-    person = relationship(Person)
+    usersname = Column(String(30), nullable=False, unique=True)
+    email = Column(String(100), nullable=False, unique=True)
+    password_hash = Column(String(128))
+    name = Column(String(50))
+    bio = Column(Text())
+    profile_picture_url = Column(String(255))
+    followed = relationship(
+        'users', secondary=followers_association,
+        primaryjoin=(followers_association.c.follower_id == id),
+        secondaryjoin=(followers_association.c.followed_id == id),
+        backref='followers'
+    )
+    
+    posts = relationship('Post', backref='author')
+    comments = relationship('comments', backref='author')
+    likes = relationship('likes', backref='users')
+
+class Post(Base):
+    __tablename__ = 'post'
+    id = Column(Integer, primary_key=True)
+    users_id = Column(Integer, ForeignKey('users.id'))
+    caption = Column(Text())
+    image_url = Column(String(255), nullable=False)
+    
+    comments = relationship('comments', backref='post')
+    likes = relationship('likes', backref='post')
+
+class Comments(Base):
+    __tablename__ = 'comments'
+    id = Column(Integer, primary_key=True)
+    users_id = Column(Integer, ForeignKey('users.id'))
+    post_id = Column(Integer, ForeignKey('post.id'))
+    text = Column(Text(), nullable=False)
+
+class Likes(Base):
+    __tablename__ = 'likes'
+    id = Column(Integer, primary_key=True)
+    users_id = Column(Integer, ForeignKey('users.id'))
+    post_id = Column(Integer, ForeignKey('post.id'))
 
     def to_dict(self):
         return {}
