@@ -24,7 +24,7 @@ class Users(Base):
     bio = Column(Text())
     profile_picture_url = Column(String(255))
     followed = relationship(
-        'users', secondary=followers_association,
+        'Users', secondary=followers_association,
         primaryjoin=(followers_association.c.follower_id == id),
         secondaryjoin=(followers_association.c.followed_id == id),
         backref='followers'
